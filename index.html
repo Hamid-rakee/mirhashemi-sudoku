@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>سودوکو رنگی ۳×۳</title>
+<style>
+:root{--bg:#fdf6ec;--fg:#2b2b2b;--card:#fff;--line:#d8cdbd;--c0:#ef4444;--c1:#3b82f6;--c2:#facc15;--bad:#dc2626;--ok:#16a34a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1b22;--fg:#f1f1f1;--card:#2a2a34;--line:#444;}}
+:root[data-theme="dark"]{--bg:#1b1b22;--fg:#f1f1f1;--card:#2a2a34;--line:#444;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Tahoma,"Vazirmatn",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px 16px;min-height:100vh}
+h1{font-size:1.5rem;margin:8px 0}
+p{margin:4px 0 16px;text-align:center;opacity:.8;font-size:.95rem;max-width:340px}
+#grid{direction:ltr;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(86vw,340px);aspect-ratio:1;background:var(--line);padding:8px;border-radius:18px}
+.cell{border:4px solid transparent;border-radius:12px;background:var(--card);font-size:clamp(28px,12vw,52px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(0,0,0,.55);font-family:inherit;padding:0}
+.cell.given{border-color:var(--fg);cursor:default}
+.cell.bad{border-color:var(--bad);animation:s .3s}
+.c0{background:var(--c0)}.c1{background:var(--c1)}.c2{background:var(--c2)}
+@keyframes s{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.pal{display:flex;gap:14px;margin-top:20px;direction:ltr}
+.sw{width:64px;height:64px;border-radius:50%;border:4px solid transparent;font-size:28px;color:rgba(0,0,0,.55);cursor:pointer;padding:0;font-family:inherit}
+.sw.sel{border-color:var(--fg);transform:scale(1.15)}
+.sw.er{background:var(--card);color:var(--fg);border:3px dashed var(--line);font-size:22px}
+.sw.er.sel{border:4px solid var(--fg)}
+#msg{min-height:2em;margin:16px 0 8px;font-size:1.2rem;font-weight:bold;color:var(--ok)}
+button.new{background:var(--fg);color:var(--bg);border:0;border-radius:999px;padding:12px 28px;font-size:1rem;font-family:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>🎨 سودوکو رنگی ۳×۳</h1>
+<p>یک رنگ از پایین انتخاب کنید و روی خانه‌ی خالی بزنید. در هر ردیف و هر ستون باید هر سه رنگ یک‌بار بیاید.</p>
+<div id="grid"></div>
+<div class="pal" id="pal"></div>
+<div id="msg"></div>
+<button class="new" id="nb">بازی جدید</button>
+<script>
+const SH=['●','▲','■'];
+const perms=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+const squares=[];
+perms.forEach(a=>perms.forEach(b=>perms.forEach(c=>{
+ for(let j=0;j<3;j++){if(new Set([a[j],b[j],c[j]]).size<3)return;}
+ squares.push([...a,...b,...c]);
+})));
+const rnd=n=>Math.floor(Math.random()*n);
+let sol,giv,cur,sel=0;
+function newGame(){
+ sol=squares[rnd(squares.length)];
+ for(;;){
+  const idx=[0,1,2,3,4,5,6,7,8].sort(()=>Math.random()-.5).slice(0,3);
+  const cnt=squares.filter(s=>idx.every(i=>s[i]===sol[i])).length;
+  if(cnt===1){giv=idx;break;}
+ }
+ cur=sol.map((v,i)=>giv.includes(i)?v:-1);
+ document.getElementById('msg').textContent='';
+ render();
+}
+function conflicts(){
+ const bad=new Set();
+ for(let i=0;i<9;i++){
+  if(cur[i]<0)continue;
+  const r=Math.floor(i/3),c=i%3;
+  for(let k=0;k<3;k++){
+   const a=r*3+k,b=k*3+c;
+   if(a!==i&&cur[a]===cur[i]){bad.add(i);}
+   if(b!==i&&cur[b]===cur[i]){bad.add(i);}
+  }
+ }
+ return bad;
+}
+function render(){
+ const g=document.getElementById('grid');g.innerHTML='';
+ const bad=conflicts();
+ cur.forEach((v,i)=>{
+  const b=document.createElement('button');
+  b.className='cell'+(v>=0?' c'+v:'')+(giv.includes(i)?' given':'')+(bad.has(i)?' bad':'');
+  b.textContent=v>=0?SH[v]:'';
+  b.setAttribute('aria-label','خانه '+(i+1));
+  b.onclick=()=>{if(giv.includes(i))return;cur[i]=sel;render();check();};
+  g.appendChild(b);
+ });
+}
+function check(){
+ const full=cur.every(v=>v>=0);
+ if(full&&conflicts().size===0)document.getElementById('msg').textContent='🎉 آفرین! حل شد';
+ else document.getElementById('msg').textContent='';
+}
+function pal(){
+ const p=document.getElementById('pal');p.innerHTML='';
+ [0,1,2,-1].forEach(c=>{
+  const b=document.createElement('button');
+  b.className='sw '+(c>=0?'c'+c:'er')+(sel===c?' sel':'');
+  b.textContent=c>=0?SH[c]:'✕';
+  b.setAttribute('aria-label',c>=0?'رنگ '+(c+1):'پاک‌کن');
+  b.onclick=()=>{sel=c;pal();};
+  p.appendChild(b);
+ });
+}
+pal();
+document.getElementById('nb').onclick=newGame;
+newGame();
+</script>
+</body>
+</html>
